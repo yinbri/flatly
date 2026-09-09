@@ -106,19 +106,33 @@ export function Canvas({
     if (!frame) return;
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
+
+      // A pinch arrives as ctrl+wheel on every platform; a mouse wheel sends chunky,
+      // whole-number deltas with no horizontal component; a trackpad swipe sends small,
+      // often fractional ones with both axes. So the wheel zooms and the trackpad pans,
+      // which is what each of them does in Photoshop.
+      const pinch = event.ctrlKey || event.metaKey;
+      const lines = event.deltaMode !== 0;
+      const wheelNotch =
+        event.deltaX === 0 && Math.abs(event.deltaY) >= 40 && Number.isInteger(event.deltaY);
+
+      if (!pinch && !lines && !wheelNotch) {
+        panBy(-event.deltaX, -event.deltaY);
+        return;
+      }
+
       const rect = frame.getBoundingClientRect();
       const anchor = {
         x: event.clientX - (rect.left + rect.width / 2),
         y: event.clientY - (rect.top + rect.height / 2),
       };
-      // Some browsers report lines rather than pixels; a trackpad pinch arrives as ctrl+wheel.
-      const delta = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY;
+      const delta = lines ? event.deltaY * 16 : event.deltaY;
       const intensity = event.ctrlKey ? 0.012 : 0.0025;
       zoomBy(Math.exp(-delta * intensity), anchor);
     };
     frame.addEventListener("wheel", onWheel, { passive: false });
     return () => frame.removeEventListener("wheel", onWheel);
-  }, [zoomBy]);
+  }, [zoomBy, panBy]);
 
   // Space is the hand tool, as in Photoshop.
   React.useEffect(() => {

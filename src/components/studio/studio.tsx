@@ -150,12 +150,14 @@ export function Studio({ board }: { board: Board }) {
         board.redo();
         return;
       }
-      if (mod && event.key === "0") {
+      // Shift is the reliable modifier here: browsers keep Ctrl/Cmd+0 and +1 for their own
+      // zoom and never pass them to the page. `code` rather than `key`, since Shift+1 is "!".
+      if (event.code === "Digit1" && (event.shiftKey || mod)) {
         event.preventDefault();
         viewport.fitToFrame();
         return;
       }
-      if (mod && event.key === "1") {
+      if (event.code === "Digit0" && (event.shiftKey || mod)) {
         event.preventDefault();
         viewport.actualSize();
         return;
@@ -248,7 +250,7 @@ export function Studio({ board }: { board: Board }) {
             onClick={viewport.fitToFrame}
             onDoubleClick={viewport.actualSize}
             className="w-12 rounded px-1 font-mono text-xs tabular-nums text-muted-foreground hover:text-foreground"
-            title="Fit to window (Ctrl+0) — double-click for 100% (Ctrl+1)"
+            title="Fit to window (Shift+1) — double-click for 100% (Shift+0)"
           >
             {zoomPercent}%
           </button>

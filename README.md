@@ -65,9 +65,9 @@ a category, guessed from the file name and editable at any time.
 - On the board: drag to move, corner handle to resize, the handle above a piece to rotate
   (<kbd>Shift</kbd> snaps to 15°). <kbd>Shift</kbd> while moving locks to one axis, and pieces snap
   to the board's center lines.
-- **Navigate** as in Photoshop: scroll to zoom about the pointer, middle-drag or hold
-  <kbd>Space</kbd> to pan, <kbd>Ctrl/⌘</kbd>+<kbd>0</kbd> to fit and <kbd>Ctrl/⌘</kbd>+<kbd>1</kbd>
-  for 100%.
+- **Navigate** as in Photoshop: a mouse wheel zooms about the pointer, a trackpad swipe pans and
+  a pinch zooms; middle-drag or hold <kbd>Space</kbd> to pan; <kbd>Shift</kbd>+<kbd>1</kbd> fits
+  and <kbd>Shift</kbd>+<kbd>0</kbd> is 100%.
 - *Auto-arrange* re-flows everything into the template, anchors first.
 - *Save* stores the outfit; *PNG* exports the board at 2× (2000 × 2800).
 
@@ -124,9 +124,14 @@ produces the same board.
 | Arrow keys | Nudge (<kbd>Shift</kbd> for 10 units) |
 | <kbd>[</kbd> / <kbd>]</kbd> | Send back / bring forward (<kbd>Shift</kbd> for all the way) |
 | <kbd>Esc</kbd> | Deselect |
-| Scroll wheel | Zoom about the pointer |
+| Mouse wheel, or pinch | Zoom about the pointer |
+| Trackpad swipe | Pan the board |
 | Middle-drag, or <kbd>Space</kbd>+drag | Pan the board |
-| <kbd>Ctrl/⌘</kbd>+<kbd>0</kbd> / <kbd>Ctrl/⌘</kbd>+<kbd>1</kbd> | Fit to window / 100% |
+| <kbd>Shift</kbd>+<kbd>1</kbd> / <kbd>Shift</kbd>+<kbd>0</kbd> | Fit to window / 100% |
+
+<kbd>Ctrl/⌘</kbd> also works for fit and 100%, where the browser lets it through —
+<kbd>Ctrl/⌘</kbd>+<kbd>1</kbd> is "switch to tab 1" in most browsers, which is why
+<kbd>Shift</kbd> is the one documented.
 
 ## Where your data lives
 
