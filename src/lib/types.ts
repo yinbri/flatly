@@ -47,6 +47,18 @@ export interface Layer {
   z: number;
 }
 
+/** A saved inspiration image: someone else's flat lay, kept to work from. */
+export interface Reference {
+  id: string;
+  name: string;
+  source: "upload" | "link";
+  remoteUrl?: string;
+  blobKey?: string;
+  width: number;
+  height: number;
+  createdAt: number;
+}
+
 export interface Outfit {
   id: string;
   name: string;
@@ -60,6 +72,15 @@ export interface Outfit {
 /** The flat-lay artboard is a fixed coordinate space; the view scales to fit. */
 export const CANVAS_W = 1000;
 export const CANVAS_H = 1400;
+
+/** Starting points for browsing, opened on Pinterest itself. */
+export const PINTEREST_SEARCHES = [
+  "outfit flat lay",
+  "mens outfit flat lay",
+  "streetwear flat lay",
+  "capsule wardrobe flat lay",
+  "knolling clothes",
+] as const;
 
 export const BACKGROUNDS = [
   { id: "paper", label: "Paper", value: "#ffffff" },

@@ -8,6 +8,7 @@ import {
   FlipHorizontal,
   Layers,
   RotateCw,
+  Sparkles,
   Trash2,
   Wand2,
 } from "lucide-react";
@@ -20,14 +21,16 @@ import { cn } from "@/lib/utils";
 import { category } from "@/lib/categories";
 import { BACKGROUNDS, type WardrobeItem } from "@/lib/types";
 import type { Board } from "@/lib/use-board";
+import type { ReferenceView } from "@/lib/use-reference";
 
 interface InspectorProps {
   board: Board;
   itemsById: Map<string, WardrobeItem>;
   srcFor: (itemId: string) => string | undefined;
+  reference: ReferenceView;
 }
 
-export function Inspector({ board, itemsById, srcFor }: InspectorProps) {
+export function Inspector({ board, itemsById, srcFor, reference }: InspectorProps) {
   const sliding = React.useRef(false);
   const selected = board.selected;
   const selectedItem = selected ? itemsById.get(selected.itemId) : undefined;
@@ -192,6 +195,43 @@ export function Inspector({ board, itemsById, srcFor }: InspectorProps) {
             ))}
           </div>
         </div>
+
+        {reference.id ? (
+          <>
+            <Separator />
+            <div className="space-y-3 p-3">
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-1.5 text-xs">
+                  <Sparkles className="size-3.5" /> Reference
+                </Label>
+                <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                  {Math.round(reference.opacity * 100)}%
+                </span>
+              </div>
+              <div className="checker overflow-hidden rounded-md border">
+                {srcFor(reference.id) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={srcFor(reference.id)} alt="" className="max-h-28 w-full object-contain" />
+                ) : null}
+              </div>
+              <Slider
+                min={0}
+                max={1}
+                step={0.01}
+                value={[reference.opacity]}
+                onValueChange={([value]) => reference.setOpacity(value)}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => reference.select(null)}
+              >
+                Hide reference
+              </Button>
+            </div>
+          </>
+        ) : null}
 
         <Separator />
 

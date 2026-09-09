@@ -37,6 +37,8 @@ interface CanvasProps {
   background: string;
   selectedId: string | null;
   viewport: Viewport;
+  /** An inspiration image laid under the pieces, to work from. */
+  reference?: { src?: string; opacity: number };
   onSelect: (id: string | null) => void;
   onBeginGesture: () => void;
   onUpdateLayer: (id: string, patch: Partial<Layer>, options?: { history?: boolean }) => void;
@@ -54,6 +56,7 @@ export function Canvas({
   background,
   selectedId,
   viewport,
+  reference,
   onSelect,
   onBeginGesture,
   onUpdateLayer,
@@ -314,6 +317,18 @@ export function Canvas({
           transform: `translate3d(${offset.x}px, ${offset.y}px, 0)`,
         }}
       >
+        {reference?.src ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={reference.src}
+            alt=""
+            aria-hidden
+            draggable={false}
+            style={{ opacity: reference.opacity }}
+            className="pointer-events-none absolute inset-0 size-full object-contain"
+          />
+        ) : null}
+
         {ordered.map((layer) => {
           const item = itemsById.get(layer.itemId);
           const src = item ? srcFor(item.id) : undefined;

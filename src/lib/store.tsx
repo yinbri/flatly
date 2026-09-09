@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { blobsStore, itemsStore, outfitsStore } from "./db";
+import { blobsStore, itemsStore, outfitsStore, referencesStore } from "./db";
 import { cacheRemote, measure } from "./image";
 import { cutOut, describeBackground } from "./cutout";
 import { guessCategory } from "./categories";
-import type { CategoryId, Outfit, WardrobeItem } from "./types";
+import type { CategoryId, Outfit, Reference, WardrobeItem } from "./types";
 
 function uid(): string {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
@@ -47,6 +47,10 @@ interface WardrobeContextValue {
   restoreOriginal: (id: string) => Promise<void>;
   saveOutfit: (outfit: Outfit) => Promise<void>;
   removeOutfit: (id: string) => Promise<void>;
+  /** Inspiration images kept to work from. */
+  references: Reference[];
+  addReference: (source: File | string, name?: string) => Promise<Reference>;
+  removeReference: (id: string) => Promise<void>;
 }
 
 const WardrobeContext = React.createContext<WardrobeContextValue | null>(null);
@@ -55,6 +59,7 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = React.useState(false);
   const [items, setItems] = React.useState<WardrobeItem[]>([]);
   const [outfits, setOutfits] = React.useState<Outfit[]>([]);
+  const [references, setReferences] = React.useState<Reference[]>([]);
   const [sources, setSources] = React.useState<Record<string, string>>({});
   const objectUrls = React.useRef<Record<string, string>>({});
 
@@ -64,14 +69,16 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
 
     (async () => {
       try {
-        const [storedItems, storedOutfits] = await Promise.all([
+        const [storedItems, storedOutfits, storedReferences] = await Promise.all([
           itemsStore.all(),
           outfitsStore.all(),
+          referencesStore.all().catch(() => [] as Reference[]),
         ]);
         if (cancelled) return;
         const next: Record<string, string> = {};
+        const withBlobs = [...storedItems, ...storedReferences];
         await Promise.all(
-          storedItems.map(async (item) => {
+          withBlobs.map(async (item) => {
             if (!item.blobKey) {
               if (item.remoteUrl) next[item.id] = item.remoteUrl;
               return;
@@ -89,6 +96,7 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
         if (cancelled) return;
         setItems(storedItems.sort((a, b) => b.createdAt - a.createdAt));
         setOutfits(storedOutfits.sort((a, b) => b.updatedAt - a.updatedAt));
+        setReferences(storedReferences.sort((a, b) => b.createdAt - a.createdAt));
         setSources(next);
       } finally {
         if (!cancelled) setReady(true);
@@ -352,6 +360,76 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
     await outfitsStore.remove(id);
   }, []);
 
+  /**
+   * Inspiration images are stored whole: no cut-out, no trimming. They are somebody
+   * else's photograph, kept as a reference to work from.
+   */
+  const addReference = React.useCallback(async (source: File | string, name?: string) => {
+    let blob: Blob | null = null;
+    let remoteUrl: string | undefined;
+    let label = name ?? "";
+
+    if (typeof source === "string") {
+      const trimmed = source.trim();
+      if (!/^https?:\/\//i.test(trimmed)) {
+        throw new Error("Paste a full image URL starting with http:// or https://");
+      }
+      remoteUrl = trimmed;
+      label = label || prettyName(trimmed);
+      blob = await cacheRemote(trimmed);
+    } else {
+      if (!source.type.startsWith("image/")) throw new Error(`${source.name} is not an image.`);
+      blob = source;
+      label = label || prettyName(source.name);
+    }
+
+    const src = blob ? URL.createObjectURL(blob) : remoteUrl;
+    if (!src) throw new Error("That image could not be read.");
+    const { width, height } = await measure(src);
+
+    let blobKey: string | undefined;
+    if (blob) {
+      blobKey = uid();
+      await blobsStore.put(blobKey, blob);
+    }
+
+    const reference: Reference = {
+      id: uid(),
+      name: label || "Reference",
+      source: typeof source === "string" ? "link" : "upload",
+      remoteUrl,
+      blobKey,
+      width,
+      height,
+      createdAt: Date.now(),
+    };
+    await referencesStore.put(reference);
+    if (blob) objectUrls.current[reference.id] = src;
+    setSources((prev) => ({ ...prev, [reference.id]: src }));
+    setReferences((prev) => [reference, ...prev]);
+    return reference;
+  }, []);
+
+  const removeReference = React.useCallback(
+    async (id: string) => {
+      const reference = references.find((entry) => entry.id === id);
+      setReferences((prev) => prev.filter((entry) => entry.id !== id));
+      setSources((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      const url = objectUrls.current[id];
+      if (url) {
+        URL.revokeObjectURL(url);
+        delete objectUrls.current[id];
+      }
+      await referencesStore.remove(id);
+      if (reference?.blobKey) await blobsStore.remove(reference.blobKey).catch(() => undefined);
+    },
+    [references],
+  );
+
   const itemsById = React.useMemo(() => new Map(items.map((item) => [item.id, item])), [items]);
 
   const srcFor = React.useCallback((itemId: string) => sources[itemId], [sources]);
@@ -371,6 +449,9 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
       restoreOriginal,
       saveOutfit,
       removeOutfit,
+      references,
+      addReference,
+      removeReference,
     }),
     [
       ready,
@@ -386,6 +467,9 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
       restoreOriginal,
       saveOutfit,
       removeOutfit,
+      references,
+      addReference,
+      removeReference,
     ],
   );
 

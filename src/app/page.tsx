@@ -1,20 +1,23 @@
 "use client";
 
 import * as React from "react";
-import { Frame, LayoutGrid, Shirt } from "lucide-react";
+import { Frame, LayoutGrid, Shirt, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { InspirationPanel } from "@/components/inspiration/inspiration-panel";
 import { OutfitsPanel } from "@/components/outfits/outfits-panel";
 import { Studio } from "@/components/studio/studio";
 import { WardrobePanel } from "@/components/wardrobe/wardrobe-panel";
 import { useWardrobe } from "@/lib/store";
 import { useBoard } from "@/lib/use-board";
+import { useReference } from "@/lib/use-reference";
 import type { Outfit, WardrobeItem } from "@/lib/types";
 
 export default function Home() {
   const { items, outfits, itemsById } = useWardrobe();
   const board = useBoard();
+  const reference = useReference();
   const [tab, setTab] = React.useState("wardrobe");
 
   const place = (item: WardrobeItem) => {
@@ -49,6 +52,9 @@ export default function Home() {
           <TabsTrigger value="studio">
             <LayoutGrid /> Studio
           </TabsTrigger>
+          <TabsTrigger value="inspiration">
+            <Sparkles /> Inspiration
+          </TabsTrigger>
           <TabsTrigger value="outfits">
             <Frame /> Outfits
           </TabsTrigger>
@@ -68,7 +74,11 @@ export default function Home() {
       </TabsContent>
 
       <TabsContent value="studio" className="min-h-0 flex-1 outline-none">
-        <Studio board={board} />
+        <Studio board={board} reference={reference} />
+      </TabsContent>
+
+      <TabsContent value="inspiration" className="flex min-h-0 flex-1 flex-col outline-none">
+        <InspirationPanel reference={reference} onUseInStudio={() => setTab("studio")} />
       </TabsContent>
 
       <TabsContent value="outfits" className="flex min-h-0 flex-1 flex-col outline-none">

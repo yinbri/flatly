@@ -21,8 +21,9 @@
 
 - [Why](#why)
 - [Quick start](#quick-start)
-- [The three tabs](#the-three-tabs)
+- [The four tabs](#the-four-tabs)
 - [Backgrounds](#backgrounds)
+- [Inspiration](#inspiration)
 - [How auto-placement works](#how-auto-placement-works)
 - [Shortcuts](#shortcuts)
 - [Where your data lives](#where-your-data-lives)
@@ -50,7 +51,7 @@ drop some images into the Wardrobe tab.
 Transparent cut-out PNGs look best — and if you have not got one, flatly will usually make one for
 you. See [Backgrounds](#backgrounds).
 
-## The three tabs
+## The four tabs
 
 **Wardrobe** — your pieces. Add them by dropping image files anywhere on the panel, by clicking
 *Add pieces* (upload one or many), or by pasting an image URL. Linked images are downloaded and
@@ -70,6 +71,8 @@ a category, guessed from the file name and editable at any time.
   and <kbd>Shift</kbd>+<kbd>0</kbd> is 100%.
 - *Auto-arrange* re-flows everything into the template, anchors first.
 - *Save* stores the outfit; *PNG* exports the board at 2× (2000 × 2800).
+
+**Inspiration** — a board of other people's flat lays to work from. See [Inspiration](#inspiration).
 
 **Outfits** — saved layouts with rendered previews. Open one back in the studio, duplicate it,
 export it, or delete it.
@@ -97,6 +100,26 @@ are both one click, and the toggle in the add dialog turns the whole thing off.
 For a photo of a garment on a person, this is the wrong tool — that needs a generative model, which
 does not run in a browser. Lay the piece flat, shoot it against a plain wall or duvet, and this will
 cut it out.
+
+## Inspiration
+
+Somewhere to keep the flat lays you are working from, and a way to build against them.
+
+**Collect.** Drag a pin straight out of a Pinterest tab and drop it here — a drag between tabs
+carries a URL rather than a file, which is handled — or paste an image or image URL with
+<kbd>Ctrl/⌘</kbd>+<kbd>V</kbd>, or upload from disk. Images are fetched and stored on your device
+where the host allows it, and hotlinked when it does not. References are kept whole: no cut-out,
+no trimming, because they are somebody else's photograph rather than a piece of your wardrobe.
+
+**Trace.** *Trace* on any reference pins it behind the board in the studio at adjustable opacity,
+so you can match a layout you like rather than eyeball it. The inspector has the opacity slider.
+It is a guide only — it is never saved with the outfit and never appears in an export.
+
+**Browse.** Pinterest has no public search API — the v5 API covers your own boards and ads, behind
+app review — so searching from inside the app is not something this can do honestly. Instead there
+are shortcuts out to Pinterest searches, and a slot for a public board URL that renders through
+[Pinterest's own embed widget](https://developers.pinterest.com/docs/web-features/widgets/), which
+serves the pins from their CDN and links back to them.
 
 ## How auto-placement works
 
@@ -135,8 +158,10 @@ produces the same board.
 
 ## Where your data lives
 
-IndexedDB, in this browser, on this device — three stores: `items` (metadata), `blobs` (the actual
-image bytes) and `outfits` (layouts plus preview thumbnails). Nothing is uploaded anywhere.
+IndexedDB, in this browser, on this device — four stores: `items` (metadata), `blobs` (the actual
+image bytes), `outfits` (layouts plus preview thumbnails) and `references` (inspiration images).
+The only thing kept outside it is your Pinterest board URL, in `localStorage`. Nothing is uploaded
+anywhere.
 
 The flip side: clearing site data clears the wardrobe, and nothing syncs between browsers or
 devices. Export a PNG for anything you want to keep outside the app.
@@ -151,10 +176,12 @@ devices. Export a PNG for anything you want to keep outside the app.
 | `src/lib/layout.ts` | The slot template and the auto-placement / auto-arrange logic |
 | `src/lib/use-board.ts` | Board state for the studio: layers, selection, undo history |
 | `src/lib/use-viewport.ts` | Pan and zoom for the board, anchored at the pointer |
+| `src/lib/use-reference.ts` | Which inspiration image is pinned behind the board |
 | `src/lib/image.ts` | Image loading, remote caching, canvas rendering and PNG export |
 | `src/lib/cutout.ts` | Plain-background detection and the flood-fill cut-out |
 | `src/components/wardrobe` | Wardrobe tab: grid, add dialog, edit dialog |
 | `src/components/studio` | Studio tab: palette, canvas, inspector |
+| `src/components/inspiration` | Inspiration tab: reference board and the Pinterest embed |
 | `src/components/outfits` | Saved outfits tab |
 
 Built with [Next.js](https://nextjs.org) (App Router), [Tailwind CSS v4](https://tailwindcss.com)

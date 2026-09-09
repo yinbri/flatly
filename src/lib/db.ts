@@ -1,10 +1,11 @@
-import type { Outfit, WardrobeItem } from "./types";
+import type { Outfit, Reference, WardrobeItem } from "./types";
 
 const DB_NAME = "flatly";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const ITEMS = "items";
 const OUTFITS = "outfits";
 const BLOBS = "blobs";
+const REFERENCES = "references";
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -20,6 +21,10 @@ function openDb(): Promise<IDBDatabase> {
         if (!db.objectStoreNames.contains(ITEMS)) db.createObjectStore(ITEMS, { keyPath: "id" });
         if (!db.objectStoreNames.contains(OUTFITS)) db.createObjectStore(OUTFITS, { keyPath: "id" });
         if (!db.objectStoreNames.contains(BLOBS)) db.createObjectStore(BLOBS);
+        // Added in v2; existing wardrobes upgrade in place.
+        if (!db.objectStoreNames.contains(REFERENCES)) {
+          db.createObjectStore(REFERENCES, { keyPath: "id" });
+        }
       };
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
@@ -54,6 +59,13 @@ export const outfitsStore = {
   all: () => run<Outfit[]>(OUTFITS, "readonly", (s) => s.getAll() as IDBRequest<Outfit[]>),
   put: (outfit: Outfit) => run(OUTFITS, "readwrite", (s) => s.put(outfit)),
   remove: (id: string) => run(OUTFITS, "readwrite", (s) => s.delete(id)),
+};
+
+export const referencesStore = {
+  all: () =>
+    run<Reference[]>(REFERENCES, "readonly", (s) => s.getAll() as IDBRequest<Reference[]>),
+  put: (reference: Reference) => run(REFERENCES, "readwrite", (s) => s.put(reference)),
+  remove: (id: string) => run(REFERENCES, "readwrite", (s) => s.delete(id)),
 };
 
 export const blobsStore = {

@@ -24,6 +24,7 @@ import { useWardrobe } from "@/lib/store";
 import type { Outfit } from "@/lib/types";
 import type { Board } from "@/lib/use-board";
 import { useViewport } from "@/lib/use-viewport";
+import type { ReferenceView } from "@/lib/use-reference";
 import { AddItemDialog } from "@/components/wardrobe/add-item-dialog";
 import { Canvas } from "./canvas";
 import { Inspector } from "./inspector";
@@ -34,7 +35,7 @@ function uid(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export function Studio({ board }: { board: Board }) {
+export function Studio({ board, reference }: { board: Board; reference: ReferenceView }) {
   const { items, itemsById, srcFor, saveOutfit, outfits } = useWardrobe();
   const viewport = useViewport();
   const [busy, setBusy] = React.useState<"save" | "export" | null>(null);
@@ -267,7 +268,7 @@ export function Studio({ board }: { board: Board }) {
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="h-[70dvh] w-72 overflow-hidden p-0">
-              <Inspector board={board} itemsById={itemsById} srcFor={srcFor} />
+              <Inspector board={board} itemsById={itemsById} srcFor={srcFor} reference={reference} />
             </PopoverContent>
           </Popover>
 
@@ -299,6 +300,7 @@ export function Studio({ board }: { board: Board }) {
           background={board.background}
           selectedId={board.selectedId}
           viewport={viewport}
+          reference={{ src: reference.id ? srcFor(reference.id) : undefined, opacity: reference.opacity }}
           onSelect={board.select}
           onBeginGesture={board.beginGesture}
           onUpdateLayer={board.updateLayer}
@@ -309,7 +311,7 @@ export function Studio({ board }: { board: Board }) {
         />
 
         <div className="hidden min-h-0 lg:block">
-          <Inspector board={board} itemsById={itemsById} srcFor={srcFor} />
+          <Inspector board={board} itemsById={itemsById} srcFor={srcFor} reference={reference} />
         </div>
       </div>
 
