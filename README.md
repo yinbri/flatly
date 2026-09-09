@@ -65,6 +65,9 @@ a category, guessed from the file name and editable at any time.
 - On the board: drag to move, corner handle to resize, the handle above a piece to rotate
   (<kbd>Shift</kbd> snaps to 15°). <kbd>Shift</kbd> while moving locks to one axis, and pieces snap
   to the board's center lines.
+- **Navigate** as in Photoshop: scroll to zoom about the pointer, middle-drag or hold
+  <kbd>Space</kbd> to pan, <kbd>Ctrl/⌘</kbd>+<kbd>0</kbd> to fit and <kbd>Ctrl/⌘</kbd>+<kbd>1</kbd>
+  for 100%.
 - *Auto-arrange* re-flows everything into the template, anchors first.
 - *Save* stores the outfit; *PNG* exports the board at 2× (2000 × 2800).
 
@@ -121,6 +124,9 @@ produces the same board.
 | Arrow keys | Nudge (<kbd>Shift</kbd> for 10 units) |
 | <kbd>[</kbd> / <kbd>]</kbd> | Send back / bring forward (<kbd>Shift</kbd> for all the way) |
 | <kbd>Esc</kbd> | Deselect |
+| Scroll wheel | Zoom about the pointer |
+| Middle-drag, or <kbd>Space</kbd>+drag | Pan the board |
+| <kbd>Ctrl/⌘</kbd>+<kbd>0</kbd> / <kbd>Ctrl/⌘</kbd>+<kbd>1</kbd> | Fit to window / 100% |
 
 ## Where your data lives
 
@@ -139,6 +145,7 @@ devices. Export a PNG for anything you want to keep outside the app.
 | `src/lib/store.tsx` | React context: loads everything, owns object URLs, CRUD |
 | `src/lib/layout.ts` | The slot template and the auto-placement / auto-arrange logic |
 | `src/lib/use-board.ts` | Board state for the studio: layers, selection, undo history |
+| `src/lib/use-viewport.ts` | Pan and zoom for the board, anchored at the pointer |
 | `src/lib/image.ts` | Image loading, remote caching, canvas rendering and PNG export |
 | `src/lib/cutout.ts` | Plain-background detection and the flood-fill cut-out |
 | `src/components/wardrobe` | Wardrobe tab: grid, add dialog, edit dialog |

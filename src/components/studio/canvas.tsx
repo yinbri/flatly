@@ -4,8 +4,18 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { aspectOf } from "@/lib/image";
 import { CANVAS_H, CANVAS_W, type Layer, type WardrobeItem } from "@/lib/types";
+import type { Viewport } from "@/lib/use-viewport";
 
 export const ITEM_DRAG_TYPE = "application/x-flatly-item";
+
+/** Capture throws if the pointer is already gone; losing it is not worth an exception. */
+function capture(element: HTMLElement, pointerId: number) {
+  try {
+    element.setPointerCapture(pointerId);
+  } catch {
+    // The gesture still works through the frame's own handlers.
+  }
+}
 
 interface Point {
   x: number;
@@ -26,12 +36,11 @@ interface CanvasProps {
   srcFor: (itemId: string) => string | undefined;
   background: string;
   selectedId: string | null;
-  zoom: number;
+  viewport: Viewport;
   onSelect: (id: string | null) => void;
   onBeginGesture: () => void;
   onUpdateLayer: (id: string, patch: Partial<Layer>, options?: { history?: boolean }) => void;
   onDropItem: (itemId: string, at: Point) => void;
-  onFitChange?: (fit: number) => void;
 }
 
 const MIN_WIDTH = 48;
@@ -44,36 +53,99 @@ export function Canvas({
   srcFor,
   background,
   selectedId,
-  zoom,
+  viewport,
   onSelect,
   onBeginGesture,
   onUpdateLayer,
   onDropItem,
-  onFitChange,
 }: CanvasProps) {
   const frameRef = React.useRef<HTMLDivElement>(null);
   const boardRef = React.useRef<HTMLDivElement>(null);
   const gesture = React.useRef<Gesture | null>(null);
-  const [fit, setFit] = React.useState(0.4);
+  const pan = React.useRef<Point | null>(null);
+  const [panning, setPanning] = React.useState(false);
+  const [handTool, setHandTool] = React.useState(false);
   const [guides, setGuides] = React.useState<{ v: boolean; h: boolean }>({ v: false, h: false });
   const [dropHint, setDropHint] = React.useState(false);
+
+  const { scale, offset, setFrame, zoomBy, panBy } = viewport;
 
   React.useEffect(() => {
     const frame = frameRef.current;
     if (!frame) return;
+
+    // Measure directly as well as observing: a ResizeObserver only delivers while the page
+    // is being rendered, so a board mounted in a background tab would never get its fit.
+    const measure = () => {
+      const rect = frame.getBoundingClientRect();
+      const styles = getComputedStyle(frame);
+      const padX = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight);
+      const padY = parseFloat(styles.paddingTop) + parseFloat(styles.paddingBottom);
+      if (rect.width > padX && rect.height > padY) {
+        setFrame(rect.width - padX, rect.height - padY);
+      }
+    };
+
+    measure();
     const observer = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect;
-      if (!width || !height) return;
-      const next = Math.min((width - 48) / CANVAS_W, (height - 48) / CANVAS_H);
-      const clamped = Math.max(next, 0.05);
-      setFit(clamped);
-      onFitChange?.(clamped);
+      if (width && height) setFrame(width, height);
     });
     observer.observe(frame);
-    return () => observer.disconnect();
-  }, [onFitChange]);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [setFrame]);
 
-  const scale = fit * zoom;
+  // Wheel zooms about the pointer. Registered by hand because React's wheel handler is
+  // passive, and stopping the page scrolling underneath needs a non-passive listener.
+  React.useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const rect = frame.getBoundingClientRect();
+      const anchor = {
+        x: event.clientX - (rect.left + rect.width / 2),
+        y: event.clientY - (rect.top + rect.height / 2),
+      };
+      // Some browsers report lines rather than pixels; a trackpad pinch arrives as ctrl+wheel.
+      const delta = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY;
+      const intensity = event.ctrlKey ? 0.012 : 0.0025;
+      zoomBy(Math.exp(-delta * intensity), anchor);
+    };
+    frame.addEventListener("wheel", onWheel, { passive: false });
+    return () => frame.removeEventListener("wheel", onWheel);
+  }, [zoomBy]);
+
+  // Space is the hand tool, as in Photoshop.
+  React.useEffect(() => {
+    const typing = (target: EventTarget | null) => {
+      const element = target as HTMLElement | null;
+      return Boolean(
+        element &&
+          (element.isContentEditable ||
+            ["INPUT", "TEXTAREA", "SELECT"].includes(element.tagName)),
+      );
+    };
+    const down = (event: KeyboardEvent) => {
+      if (event.code === "Space" && !event.repeat && !typing(event.target)) setHandTool(true);
+    };
+    const up = (event: KeyboardEvent) => {
+      if (event.code === "Space") setHandTool(false);
+    };
+    const cancel = () => setHandTool(false);
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    window.addEventListener("blur", cancel);
+    return () => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
+      window.removeEventListener("blur", cancel);
+    };
+  }, []);
 
   const toCanvas = (event: { clientX: number; clientY: number }, rect: DOMRect): Point => ({
     x: (event.clientX - rect.left) / scale,
@@ -81,6 +153,14 @@ export function Canvas({
   });
 
   const handlePointerDown = (event: React.PointerEvent) => {
+    // Middle button, or space held: the hand tool, whatever is under the cursor.
+    if (event.button === 1 || (event.button === 0 && handTool)) {
+      event.preventDefault();
+      pan.current = { x: event.clientX, y: event.clientY };
+      setPanning(true);
+      capture(event.currentTarget as HTMLElement, event.pointerId);
+      return;
+    }
     if (event.button !== 0) return;
     const target = event.target as HTMLElement;
     const layerEl = target.closest<HTMLElement>("[data-layer]");
@@ -101,11 +181,16 @@ export function Canvas({
     onSelect(layerId);
     onBeginGesture();
     gesture.current = { kind, layerId, origin: layer, rect, start: toCanvas(event, rect) };
-    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    capture(event.currentTarget as HTMLElement, event.pointerId);
     event.preventDefault();
   };
 
   const handlePointerMove = (event: React.PointerEvent) => {
+    if (pan.current) {
+      panBy(event.clientX - pan.current.x, event.clientY - pan.current.y);
+      pan.current = { x: event.clientX, y: event.clientY };
+      return;
+    }
     const active = gesture.current;
     if (!active) return;
     const point = toCanvas(event, active.rect);
@@ -150,11 +235,22 @@ export function Canvas({
   };
 
   const endGesture = (event: React.PointerEvent) => {
+    const element = event.currentTarget as HTMLElement;
+    const release = () => {
+      if (element.hasPointerCapture?.(event.pointerId)) {
+        element.releasePointerCapture(event.pointerId);
+      }
+    };
+    if (pan.current) {
+      pan.current = null;
+      setPanning(false);
+      release();
+      return;
+    }
     if (!gesture.current) return;
     gesture.current = null;
     setGuides({ v: false, h: false });
-    const element = event.currentTarget as HTMLElement;
-    if (element.hasPointerCapture?.(event.pointerId)) element.releasePointerCapture(event.pointerId);
+    release();
   };
 
   const ordered = React.useMemo(() => [...layers].sort((a, b) => a.z - b.z), [layers]);
@@ -163,6 +259,8 @@ export function Canvas({
     <div
       ref={frameRef}
       className="checker-lg relative flex min-h-0 flex-1 items-center justify-center overflow-hidden p-6"
+      style={{ cursor: panning ? "grabbing" : handTool ? "grab" : undefined }}
+      onAuxClick={(event) => event.preventDefault()}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={endGesture}
@@ -199,6 +297,7 @@ export function Canvas({
           height: CANVAS_H * scale,
           background,
           touchAction: "none",
+          transform: `translate3d(${offset.x}px, ${offset.y}px, 0)`,
         }}
       >
         {ordered.map((layer) => {
@@ -269,6 +368,9 @@ export function Canvas({
               <p className="text-sm font-medium text-neutral-500">Empty board</p>
               <p className="text-xs text-neutral-400">
                 Double-click a piece on the left to drop it into its spot, or drag one anywhere.
+              </p>
+              <p className="pt-1 text-[11px] text-neutral-400">
+                Scroll to zoom · middle-drag or hold space to pan
               </p>
             </div>
           </div>

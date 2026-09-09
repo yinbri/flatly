@@ -23,6 +23,7 @@ import { canvasToBlob, downloadBlob, renderOutfit, slugify } from "@/lib/image";
 import { useWardrobe } from "@/lib/store";
 import type { Outfit } from "@/lib/types";
 import type { Board } from "@/lib/use-board";
+import { useViewport } from "@/lib/use-viewport";
 import { AddItemDialog } from "@/components/wardrobe/add-item-dialog";
 import { Canvas } from "./canvas";
 import { Inspector } from "./inspector";
@@ -35,8 +36,7 @@ function uid(): string {
 
 export function Studio({ board }: { board: Board }) {
   const { items, itemsById, srcFor, saveOutfit, outfits } = useWardrobe();
-  const [zoom, setZoom] = React.useState(1);
-  const [fit, setFit] = React.useState(0.4);
+  const viewport = useViewport();
   const [busy, setBusy] = React.useState<"save" | "export" | null>(null);
   const [adding, setAdding] = React.useState(false);
 
@@ -150,6 +150,16 @@ export function Studio({ board }: { board: Board }) {
         board.redo();
         return;
       }
+      if (mod && event.key === "0") {
+        event.preventDefault();
+        viewport.fitToFrame();
+        return;
+      }
+      if (mod && event.key === "1") {
+        event.preventDefault();
+        viewport.actualSize();
+        return;
+      }
       if (!selected) return;
 
       if (mod && event.key.toLowerCase() === "d") {
@@ -192,9 +202,9 @@ export function Studio({ board }: { board: Board }) {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [board, itemsById, save]);
+  }, [board, itemsById, save, viewport]);
 
-  const zoomPercent = Math.round(fit * zoom * 100);
+  const zoomPercent = Math.round(viewport.scale * 100);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -230,24 +240,19 @@ export function Studio({ board }: { board: Board }) {
         <Separator orientation="vertical" className="mx-1 h-6" />
 
         <div className="flex items-center gap-1">
-          <ToolbarButton
-            label="Zoom out"
-            onClick={() => setZoom((value) => Math.max(0.35, value - 0.15))}
-          >
+          <ToolbarButton label="Zoom out" onClick={() => viewport.zoomBy(1 / 1.25)}>
             <ZoomOut />
           </ToolbarButton>
           <button
             type="button"
-            onClick={() => setZoom(1)}
+            onClick={viewport.fitToFrame}
+            onDoubleClick={viewport.actualSize}
             className="w-12 rounded px-1 font-mono text-xs tabular-nums text-muted-foreground hover:text-foreground"
-            title="Reset zoom to fit"
+            title="Fit to window (Ctrl+0) — double-click for 100% (Ctrl+1)"
           >
             {zoomPercent}%
           </button>
-          <ToolbarButton
-            label="Zoom in"
-            onClick={() => setZoom((value) => Math.min(3, value + 0.15))}
-          >
+          <ToolbarButton label="Zoom in" onClick={() => viewport.zoomBy(1.25)}>
             <ZoomIn />
           </ToolbarButton>
         </div>
@@ -291,11 +296,10 @@ export function Studio({ board }: { board: Board }) {
           srcFor={srcFor}
           background={board.background}
           selectedId={board.selectedId}
-          zoom={zoom}
+          viewport={viewport}
           onSelect={board.select}
           onBeginGesture={board.beginGesture}
           onUpdateLayer={board.updateLayer}
-          onFitChange={setFit}
           onDropItem={(itemId, at) => {
             const item = itemsById.get(itemId);
             if (item) board.addItem(item, itemsById, at);
