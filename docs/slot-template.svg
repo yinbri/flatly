@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-40 -100 1080 1540" width="500" height="713" role="img" aria-label="The flat-lay slot template: garments fill the left column, accessories the right rail.">
+<style>text{font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}.l{font-size:26px;font-weight:600;fill:#17171a}.s{font-size:21px;fill:#6b6b73}.z{font-size:22px;font-weight:600;letter-spacing:1.5px}</style>
+<rect x="-40" y="-100" width="1080" height="1540" fill="#ffffff"/>
+<rect x="0" y="0" width="1000" height="1400" fill="#fbfbfa" stroke="#e4e4e7" stroke-width="3"/>
+<rect x="20" y="20" width="600" height="1360" fill="#dfe5ef" opacity="0.75"/>
+<rect x="620" y="20" width="360" height="1360" fill="#ece7df" opacity="0.85"/>
+<text class="z" x="20" y="-38" fill="#7d879c">GARMENT COLUMN</text>
+<text class="z" x="620" y="-38" fill="#9a8f7d">RIGHT RAIL</text>
+<rect x="50" y="110" width="560" height="500" rx="10" fill="#ffffff" fill-opacity="0.88" stroke="#17171a" stroke-width="2.5"/>
+<text class="l" x="66" y="146">Tops</text>
+<text class="s" x="66" y="174">560×500</text>
+<rect x="50" y="630" width="560" height="700" rx="10" fill="#ffffff" fill-opacity="0.88" stroke="#17171a" stroke-width="2.5"/>
+<text class="l" x="66" y="666">Bottoms</text>
+<text class="s" x="66" y="694">560×700</text>
+<rect x="610" y="40" width="360" height="180" rx="10" fill="#ffffff" fill-opacity="0.88" stroke="#17171a" stroke-width="2.5"/>
+<text class="l" x="626" y="76">Eyewear</text>
+<text class="s" x="626" y="104">360×180</text>
+<rect x="680" y="290" width="300" height="320" rx="10" fill="#ffffff" fill-opacity="0.88" stroke="#17171a" stroke-width="2.5"/>
+<text class="l" x="696" y="326">Tech</text>
+<text class="s" x="696" y="354">300×320</text>
+<rect x="640" y="570" width="340" height="300" rx="10" fill="#ffffff" fill-opacity="0.88" stroke="#17171a" stroke-width="2.5"/>
+<text class="l" x="656" y="606">Bags</text>
+<text class="s" x="656" y="634">340×300</text>
+<rect x="590" y="810" width="200" height="300" rx="10" fill="#ffffff" fill-opacity="0.88" stroke="#17171a" stroke-width="2.5"/>
+<text class="l" x="606" y="846">Fragrance</text>
+<text class="s" x="606" y="874">200×300</text>
+<rect x="830" y="805" width="150" height="150" rx="10" fill="#ffffff" fill-opacity="0.88" stroke="#17171a" stroke-width="2.5"/>
+<text class="l" x="846" y="841">Jewelry</text>
+<text class="s" x="846" y="869">150×150</text>
+<rect x="560" y="1030" width="420" height="320" rx="10" fill="#ffffff" fill-opacity="0.88" stroke="#17171a" stroke-width="2.5"/>
+<text class="l" x="576" y="1066">Shoes</text>
+<text class="s" x="576" y="1094">420×320</text>
+</svg>
