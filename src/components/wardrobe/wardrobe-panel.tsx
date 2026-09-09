@@ -262,7 +262,7 @@ function FilterChip({
       )}
     >
       {children}
-      <span className={cn("tabular-nums", active ? "opacity-70" : "opacity-60")}>
+      <span className={cn("font-mono tabular-nums", active ? "opacity-70" : "opacity-60")}>
         {count}
       </span>
     </button>

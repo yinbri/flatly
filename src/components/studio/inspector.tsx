@@ -70,7 +70,7 @@ export function Inspector({ board, itemsById, srcFor }: InspectorProps) {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-xs">Size</Label>
-                <span className="text-xs tabular-nums text-muted-foreground">
+                <span className="font-mono text-xs tabular-nums text-muted-foreground">
                   {Math.round(selected.w)}
                 </span>
               </div>
@@ -89,7 +89,7 @@ export function Inspector({ board, itemsById, srcFor }: InspectorProps) {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-xs">Rotation</Label>
-                <span className="text-xs tabular-nums text-muted-foreground">
+                <span className="font-mono text-xs tabular-nums text-muted-foreground">
                   {selected.rotation}°
                 </span>
               </div>
@@ -200,7 +200,7 @@ export function Inspector({ board, itemsById, srcFor }: InspectorProps) {
             <Label className="flex items-center gap-1.5 text-xs">
               <Layers className="size-3.5" /> Layers
             </Label>
-            <span className="text-xs tabular-nums text-muted-foreground">
+            <span className="font-mono text-xs tabular-nums text-muted-foreground">
               {board.layers.length}
             </span>
           </div>

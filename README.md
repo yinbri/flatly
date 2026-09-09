@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# flatly
 
-## Getting Started
+A wardrobe + flat-lay studio. Upload cut-out PNGs of your clothes, then arrange them into
+Instagram-style outfit flat lays on a fixed artboard. Everything lives in your browser — there is
+no account and no server.
 
-First, run the development server:
+## Run it
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## The three tabs
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Wardrobe** — your pieces. Add them by dropping image files anywhere on the panel, by clicking
+*Add pieces* (upload one or many), or by pasting an image URL. Linked images are downloaded and
+stored locally when the host allows it; if it refuses, the piece is hotlinked instead and marked
+with a broken-link badge (it will then need the internet, and can block PNG export). Each piece gets
+a category — guessed from the file name, editable at any time — which is what drives auto-placement.
 
-## Learn More
+**Studio** — the board. The artboard is a fixed 1000 × 1400 coordinate space that scales to fit the
+window.
 
-To learn more about Next.js, take a look at the following resources:
+- **Double-click** a piece in the left palette and it drops into the slot its category owns: tops
+  upper-left, bottoms below them, shoes bottom-right, eyewear top-right, jewelry and fragrance down
+  the right rail. If that slot is taken, it falls through to the next preference, then to the
+  nearest free gap.
+- **Drag** a piece from the palette onto the board to place it exactly where you drop it.
+- On the board, drag to move, drag the corner handle to resize, and drag the handle above a piece to
+  rotate (hold <kbd>Shift</kbd> to snap to 15°). Holding <kbd>Shift</kbd> while moving locks to one
+  axis, and pieces snap to the board's center lines.
+- *Auto-arrange* re-flows everything into the template, anchors first.
+- *Save* stores the outfit; *PNG* exports the board at 2× (2000 × 2800).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Outfits** — saved layouts, with a rendered preview. Open one back in the studio, duplicate it,
+export it, or delete it.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Shortcuts
 
-## Deploy on Vercel
+| Key | Action |
+| --- | --- |
+| <kbd>Ctrl/⌘</kbd>+<kbd>Z</kbd> / <kbd>Ctrl/⌘</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> | Undo / redo |
+| <kbd>Ctrl/⌘</kbd>+<kbd>S</kbd> | Save outfit |
+| <kbd>Ctrl/⌘</kbd>+<kbd>D</kbd> | Duplicate selection |
+| <kbd>Delete</kbd> | Remove from board |
+| Arrow keys | Nudge (<kbd>Shift</kbd> for 10 units) |
+| <kbd>[</kbd> / <kbd>]</kbd> | Send back / bring forward (<kbd>Shift</kbd> for all the way) |
+| <kbd>Esc</kbd> | Deselect |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Where the data lives
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+IndexedDB, in this browser, on this device: `items` (metadata), `blobs` (the actual image bytes) and
+`outfits` (layouts + preview thumbnails). Clearing site data clears the wardrobe, and nothing syncs
+between browsers. Export a PNG for anything you want to keep outside the app.
+
+## Layout of the code
+
+| Path | What it holds |
+| --- | --- |
+| `src/lib/types.ts` | Item, layer and outfit shapes; artboard size; background swatches |
+| `src/lib/db.ts` | Thin IndexedDB wrapper (three stores) |
+| `src/lib/store.tsx` | React context: loads everything, owns object URLs, CRUD |
+| `src/lib/layout.ts` | The slot template and the auto-placement / auto-arrange logic |
+| `src/lib/use-board.ts` | Board state for the studio: layers, selection, undo history |
+| `src/lib/image.ts` | Image loading, remote caching, canvas rendering and PNG export |
+| `src/components/wardrobe` | Wardrobe tab: grid, add dialog, edit dialog |
+| `src/components/studio` | Studio tab: palette, canvas, inspector |
+| `src/components/outfits` | Saved outfits tab |
+
+Built with Next.js (App Router), Tailwind CSS v4 and shadcn/ui.

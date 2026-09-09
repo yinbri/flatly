@@ -239,7 +239,7 @@ export function Studio({ board }: { board: Board }) {
           <button
             type="button"
             onClick={() => setZoom(1)}
-            className="w-12 rounded px-1 text-xs tabular-nums text-muted-foreground hover:text-foreground"
+            className="w-12 rounded px-1 font-mono text-xs tabular-nums text-muted-foreground hover:text-foreground"
             title="Reset zoom to fit"
           >
             {zoomPercent}%

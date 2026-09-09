@@ -39,7 +39,7 @@ export default function Home() {
           <span className="grid size-7 place-items-center rounded-md bg-foreground text-background">
             <LayoutGrid className="size-4" />
           </span>
-          <span className="text-[15px] font-semibold tracking-tight">flatly</span>
+          <span className="text-[15px] font-semibold tracking-[-0.045em]">flatly</span>
         </div>
 
         <TabsList className="mx-auto">
