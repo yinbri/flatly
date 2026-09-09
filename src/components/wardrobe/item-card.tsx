@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { MoreHorizontal, Pencil, Sparkles, Trash2, Unlink } from "lucide-react";
+import { MoreHorizontal, Pencil, Scissors, Sparkles, Trash2, Undo2, Unlink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,9 +22,19 @@ interface ItemCardProps {
   onPlace: (item: WardrobeItem) => void;
   onEdit: (item: WardrobeItem) => void;
   onDelete: (item: WardrobeItem) => void;
+  onCutOut: (item: WardrobeItem) => void;
+  onRestore: (item: WardrobeItem) => void;
 }
 
-export function ItemCard({ item, src, onPlace, onEdit, onDelete }: ItemCardProps) {
+export function ItemCard({
+  item,
+  src,
+  onPlace,
+  onEdit,
+  onDelete,
+  onCutOut,
+  onRestore,
+}: ItemCardProps) {
   const meta = category(item.category);
   const Icon = meta.icon;
   const hotlinked = !item.blobKey && Boolean(item.remoteUrl);
@@ -67,6 +77,15 @@ export function ItemCard({ item, src, onPlace, onEdit, onDelete }: ItemCardProps
               <DropdownMenuItem onSelect={() => onEdit(item)}>
                 <Pencil /> Edit details
               </DropdownMenuItem>
+              {item.cutout ? (
+                <DropdownMenuItem onSelect={() => onRestore(item)}>
+                  <Undo2 /> Restore original
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem onSelect={() => onCutOut(item)}>
+                  <Scissors /> Remove background
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" onSelect={() => onDelete(item)}>
                 <Trash2 /> Delete piece

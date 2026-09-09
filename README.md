@@ -22,6 +22,7 @@
 - [Why](#why)
 - [Quick start](#quick-start)
 - [The three tabs](#the-three-tabs)
+- [Backgrounds](#backgrounds)
 - [How auto-placement works](#how-auto-placement-works)
 - [Shortcuts](#shortcuts)
 - [Where your data lives](#where-your-data-lives)
@@ -46,8 +47,8 @@ npm run dev
 Open <http://localhost:3000>. There is no setup, no `.env`, no account — the first thing to do is
 drop some images into the Wardrobe tab.
 
-Transparent cut-out PNGs look best. Any image works, but one with its background still attached will
-sit on the board as a rectangle.
+Transparent cut-out PNGs look best — and if you have not got one, flatly will usually make one for
+you. See [Backgrounds](#backgrounds).
 
 ## The three tabs
 
@@ -69,6 +70,30 @@ a category, guessed from the file name and editable at any time.
 
 **Outfits** — saved layouts with rendered previews. Open one back in the studio, duplicate it,
 export it, or delete it.
+
+## Backgrounds
+
+A product shot on a white sweep is not a cut-out, so flatly makes one on import: it reads the border
+of the image, and if the edge is a single flat colour it floods inwards from all four sides, clears
+what it reaches, and crops away the empty margin. Interior whites — a label, a pale stripe — survive,
+because they are not connected to the edge. Enclosed pockets, like the gap between two trouser legs,
+are cleared too.
+
+It runs on a canvas in your browser. No model download, no upload, no API key, and it works offline.
+
+It also knows when to keep its hands off, and leaves the image untouched if:
+
+- the image already has transparency;
+- the border is not one consistent colour (a photo taken on your carpet);
+- the result would come out shredded — a **pale garment on a pale backdrop** is the case it cannot
+  do, because the garment and the floor are the same colour to a flood fill.
+
+The original upload is always kept, so *Remove background* and *Restore original* in a piece's menu
+are both one click, and the toggle in the add dialog turns the whole thing off.
+
+For a photo of a garment on a person, this is the wrong tool — that needs a generative model, which
+does not run in a browser. Lay the piece flat, shoot it against a plain wall or duvet, and this will
+cut it out.
 
 ## How auto-placement works
 
@@ -115,6 +140,7 @@ devices. Export a PNG for anything you want to keep outside the app.
 | `src/lib/layout.ts` | The slot template and the auto-placement / auto-arrange logic |
 | `src/lib/use-board.ts` | Board state for the studio: layers, selection, undo history |
 | `src/lib/image.ts` | Image loading, remote caching, canvas rendering and PNG export |
+| `src/lib/cutout.ts` | Plain-background detection and the flood-fill cut-out |
 | `src/components/wardrobe` | Wardrobe tab: grid, add dialog, edit dialog |
 | `src/components/studio` | Studio tab: palette, canvas, inspector |
 | `src/components/outfits` | Saved outfits tab |
@@ -125,7 +151,8 @@ and [shadcn/ui](https://ui.shadcn.com), set in Inter Tight. No backend, no datab
 ## Not built yet
 
 - No accounts and no sync — one browser, one wardrobe.
-- No background removal; bring your own cut-outs.
+- Background removal handles plain backdrops only — not a garment worn by a person, and not a pale
+  piece on a pale surface.
 - The studio is desktop-shaped. Below 1024px the inspector collapses into a popover.
 - Export is PNG only, at a fixed 2× board size.
 

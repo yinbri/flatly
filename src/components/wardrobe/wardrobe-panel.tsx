@@ -33,7 +33,8 @@ import { ItemCard } from "./item-card";
 type SortKey = "recent" | "name" | "category";
 
 export function WardrobePanel({ onPlace }: { onPlace: (item: WardrobeItem) => void }) {
-  const { items, ready, srcFor, removeItem, addFromFile } = useWardrobe();
+  const { items, ready, srcFor, removeItem, addFromFile, cutOutItem, restoreOriginal } =
+    useWardrobe();
   const [query, setQuery] = React.useState("");
   const [filter, setFilter] = React.useState<CategoryId | "all">("all");
   const [sort, setSort] = React.useState<SortKey>("recent");
@@ -75,15 +76,39 @@ export function WardrobePanel({ onPlace }: { onPlace: (item: WardrobeItem) => vo
     );
     if (!files.length) return;
     let added = 0;
+    let cutouts = 0;
     for (const file of files) {
       try {
-        await addFromFile(file);
+        const item = await addFromFile(file);
         added += 1;
+        if (item.cutout) cutouts += 1;
       } catch (error) {
         toast.error(error instanceof Error ? error.message : `Could not add ${file.name}.`);
       }
     }
-    if (added) toast.success(added === 1 ? "Piece added." : `${added} pieces added.`);
+    if (added) {
+      const headline = added === 1 ? "Piece added." : `${added} pieces added.`;
+      toast.success(cutouts ? `${headline} Background removed from ${cutouts}.` : headline);
+    }
+  };
+
+  const handleCutOut = async (item: WardrobeItem) => {
+    const id = toast.loading(`Removing the background from ${item.name}…`);
+    const outcome = await cutOutItem(item.id);
+    if (outcome === "done") {
+      toast.success("Background removed.", { id });
+    } else if (outcome === "transparent") {
+      toast.success("That image is already transparent.", { id });
+    } else if (outcome === "unchanged") {
+      toast.error("No plain background here — the backdrop is too close to the piece.", { id });
+    } else {
+      toast.error("That image could not be processed.", { id });
+    }
+  };
+
+  const handleRestore = async (item: WardrobeItem) => {
+    await restoreOriginal(item.id);
+    toast.success(`Restored the original ${item.name}.`);
   };
 
   const confirmDelete = async () => {
@@ -182,6 +207,8 @@ export function WardrobePanel({ onPlace }: { onPlace: (item: WardrobeItem) => vo
                 onPlace={onPlace}
                 onEdit={setEditing}
                 onDelete={setPendingDelete}
+                onCutOut={handleCutOut}
+                onRestore={handleRestore}
               />
             ))}
           </div>

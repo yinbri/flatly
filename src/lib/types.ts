@@ -25,6 +25,10 @@ export interface WardrobeItem {
   remoteUrl?: string;
   /** Key into the blob store when the image bytes live in IndexedDB. */
   blobKey?: string;
+  /** The untouched upload, kept so a background cut-out can be undone. */
+  originalBlobKey?: string;
+  /** True once the plain background has been cut away. */
+  cutout?: boolean;
   width: number;
   height: number;
   createdAt: number;

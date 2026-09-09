@@ -3,6 +3,7 @@
 import * as React from "react";
 import { blobsStore, itemsStore, outfitsStore } from "./db";
 import { cacheRemote, measure } from "./image";
+import { cutOut, describeBackground } from "./cutout";
 import { guessCategory } from "./categories";
 import type { CategoryId, Outfit, WardrobeItem } from "./types";
 
@@ -25,6 +26,8 @@ export interface NewItemInput {
   category?: CategoryId;
   brand?: string;
   notes?: string;
+  /** Cut a plain background away on import. Defaults to on. */
+  autoCutout?: boolean;
 }
 
 interface WardrobeContextValue {
@@ -38,6 +41,10 @@ interface WardrobeContextValue {
   addFromUrl: (url: string, input?: NewItemInput) => Promise<WardrobeItem>;
   updateItem: (id: string, patch: Partial<WardrobeItem>) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
+  /** Cuts the background out of an item already in the wardrobe. */
+  cutOutItem: (id: string) => Promise<"done" | "unchanged" | "transparent" | "failed">;
+  /** Puts back the untouched upload. */
+  restoreOriginal: (id: string) => Promise<void>;
   saveOutfit: (outfit: Outfit) => Promise<void>;
   removeOutfit: (id: string) => Promise<void>;
 }
@@ -102,9 +109,28 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
       label: string,
       input?: NewItemInput,
     ) => {
-      const { width, height } = await measure(src);
+      let { width, height } = await measure(src);
       const blobKey = uid();
-      await blobsStore.put(blobKey, blob);
+      let originalBlobKey: string | undefined;
+      let cutout = false;
+      let displaySrc = src;
+
+      // A studio shot on a plain background becomes a proper cut-out on the way in.
+      if (input?.autoCutout !== false) {
+        const result = await cutOut(src).catch(() => null);
+        if (result) {
+          originalBlobKey = uid();
+          await blobsStore.put(originalBlobKey, blob);
+          await blobsStore.put(blobKey, result.blob);
+          width = result.width;
+          height = result.height;
+          cutout = true;
+          displaySrc = URL.createObjectURL(result.blob);
+          URL.revokeObjectURL(src);
+        }
+      }
+      if (!cutout) await blobsStore.put(blobKey, blob);
+
       const item: WardrobeItem = {
         id: uid(),
         name: input?.name?.trim() || prettyName(label),
@@ -114,13 +140,15 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
         source: origin.source,
         remoteUrl: origin.remoteUrl,
         blobKey,
+        originalBlobKey,
+        cutout: cutout || undefined,
         width,
         height,
         createdAt: Date.now(),
       };
       await itemsStore.put(item);
-      objectUrls.current[item.id] = src;
-      setSources((prev) => ({ ...prev, [item.id]: src }));
+      objectUrls.current[item.id] = displaySrc;
+      setSources((prev) => ({ ...prev, [item.id]: displaySrc }));
       setItems((prev) => [item, ...prev]);
       return item;
     },
@@ -209,6 +237,9 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
       }
       await itemsStore.remove(id);
       if (item?.blobKey) await blobsStore.remove(item.blobKey).catch(() => undefined);
+      if (item?.originalBlobKey) {
+        await blobsStore.remove(item.originalBlobKey).catch(() => undefined);
+      }
 
       // Drop the piece from any saved outfit that used it.
       const affected = outfits.filter((outfit) => outfit.layers.some((l) => l.itemId === id));
@@ -223,6 +254,89 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
       }
     },
     [items, outfits],
+  );
+
+  /** Swaps an item's image for a new blob and refreshes its object URL. */
+  const swapImage = React.useCallback(
+    async (item: WardrobeItem, patch: Partial<WardrobeItem>, blob: Blob) => {
+      const url = URL.createObjectURL(blob);
+      const previous = objectUrls.current[item.id];
+      objectUrls.current[item.id] = url;
+      if (previous) URL.revokeObjectURL(previous);
+      const updated: WardrobeItem = { ...item, ...patch };
+      await itemsStore.put(updated);
+      setItems((prev) => prev.map((entry) => (entry.id === item.id ? updated : entry)));
+      setSources((prev) => ({ ...prev, [item.id]: url }));
+    },
+    [],
+  );
+
+  const cutOutItem = React.useCallback(
+    async (id: string): Promise<"done" | "unchanged" | "transparent" | "failed"> => {
+      const item = items.find((entry) => entry.id === id);
+      const src = sources[id];
+      if (!item || !src) return "failed";
+      if (item.cutout) return "unchanged";
+
+      const report = await describeBackground(src);
+      if (report?.hasTransparency) return "transparent";
+
+      const result = await cutOut(src, { force: true }).catch(() => null);
+      if (!result) return "unchanged";
+
+      // The current blob becomes the restore point the first time round.
+      let originalBlobKey = item.originalBlobKey;
+      if (!originalBlobKey) {
+        if (!item.blobKey) return "failed";
+        originalBlobKey = item.blobKey;
+      }
+      const blobKey = uid();
+      await blobsStore.put(blobKey, result.blob);
+      await swapImage(
+        item,
+        {
+          blobKey,
+          originalBlobKey,
+          cutout: true,
+          width: result.width,
+          height: result.height,
+        },
+        result.blob,
+      );
+      return "done";
+    },
+    [items, sources, swapImage],
+  );
+
+  const restoreOriginal = React.useCallback(
+    async (id: string) => {
+      const item = items.find((entry) => entry.id === id);
+      if (!item?.originalBlobKey) return;
+      const blob = await blobsStore.get(item.originalBlobKey).catch(() => undefined);
+      if (!blob) return;
+      const cutoutKey = item.blobKey;
+      const url = URL.createObjectURL(blob);
+      const { width, height } = await measure(url).catch(() => ({
+        width: item.width,
+        height: item.height,
+      }));
+      URL.revokeObjectURL(url);
+      await swapImage(
+        item,
+        {
+          blobKey: item.originalBlobKey,
+          originalBlobKey: undefined,
+          cutout: undefined,
+          width,
+          height,
+        },
+        blob,
+      );
+      if (cutoutKey && cutoutKey !== item.originalBlobKey) {
+        await blobsStore.remove(cutoutKey).catch(() => undefined);
+      }
+    },
+    [items, swapImage],
   );
 
   const saveOutfit = React.useCallback(async (outfit: Outfit) => {
@@ -253,6 +367,8 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
       addFromUrl,
       updateItem,
       removeItem,
+      cutOutItem,
+      restoreOriginal,
       saveOutfit,
       removeOutfit,
     }),
@@ -266,6 +382,8 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
       addFromUrl,
       updateItem,
       removeItem,
+      cutOutItem,
+      restoreOriginal,
       saveOutfit,
       removeOutfit,
     ],

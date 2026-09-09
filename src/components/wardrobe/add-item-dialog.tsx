@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { CATEGORIES } from "@/lib/categories";
@@ -41,6 +42,7 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
   const [url, setUrl] = React.useState("");
   const [name, setName] = React.useState("");
   const [brand, setBrand] = React.useState("");
+  const [autoCutout, setAutoCutout] = React.useState(true);
   const [busy, setBusy] = React.useState(false);
   const [dragging, setDragging] = React.useState(false);
   const fileInput = React.useRef<HTMLInputElement>(null);
@@ -62,21 +64,27 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
     }
     setBusy(true);
     let added = 0;
+    let cutouts = 0;
     for (const file of list) {
       try {
-        await addFromFile(file, {
+        const item = await addFromFile(file, {
           category: override,
           name: list.length === 1 ? name : undefined,
           brand: brand || undefined,
+          autoCutout,
         });
         added += 1;
+        if (item.cutout) cutouts += 1;
       } catch (error) {
         toast.error(error instanceof Error ? error.message : `Could not add ${file.name}.`);
       }
     }
     setBusy(false);
     if (added) {
-      toast.success(added === 1 ? "Piece added to your wardrobe." : `${added} pieces added.`);
+      const headline = added === 1 ? "Piece added to your wardrobe." : `${added} pieces added.`;
+      toast.success(
+        cutouts ? `${headline} Background removed from ${cutouts}.` : headline,
+      );
       reset();
       onOpenChange(false);
     }
@@ -90,11 +98,14 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
         category: override,
         name: name || undefined,
         brand: brand || undefined,
+        autoCutout,
       });
       toast.success(
-        item.blobKey
-          ? "Piece added to your wardrobe."
-          : "Added, but the image could not be cached — it will need the internet.",
+        !item.blobKey
+          ? "Added, but the image could not be cached — it will need the internet."
+          : item.cutout
+            ? "Piece added, background removed."
+            : "Piece added to your wardrobe.",
       );
       reset();
       onOpenChange(false);
@@ -218,6 +229,17 @@ export function AddItemDialog({ open, onOpenChange }: AddItemDialogProps) {
               onChange={(event) => setBrand(event.target.value)}
             />
           </div>
+          <div className="flex items-start justify-between gap-4 rounded-lg border p-3 sm:col-span-2">
+            <div className="space-y-0.5">
+              <Label htmlFor="auto-cutout">Cut out plain backgrounds</Label>
+              <p className="text-xs text-muted-foreground">
+                White or single-colour backdrops are made transparent and the empty margin
+                trimmed. The original is kept, so this can be undone.
+              </p>
+            </div>
+            <Switch id="auto-cutout" checked={autoCutout} onCheckedChange={setAutoCutout} />
+          </div>
+
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="item-name">Name (optional)</Label>
             <Input
