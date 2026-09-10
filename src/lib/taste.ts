@@ -65,16 +65,6 @@ const STOPWORDS = new Set([
   "that",
 ]);
 
-export const EMPTY_PROFILE: TasteProfile = {
-  palette: [],
-  neutrality: 0,
-  categoryShare: {} as Record<CategoryId, number>,
-  gaps: [],
-  brands: {},
-  keywords: [],
-  read: { items: 0, references: 0 },
-};
-
 function mergeSwatches(input: { hex: string; weight: number }[], max: number): Swatch[] {
   const merged: Swatch[] = [];
   for (const swatch of [...input].sort((a, b) => b.weight - a.weight)) {

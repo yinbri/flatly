@@ -248,13 +248,3 @@ export function autoArrange(layers: Layer[], items: Map<string, WardrobeItem>): 
   const byId = new Map(placed.map((layer) => [layer.id, layer]));
   return layers.map((layer) => byId.get(layer.id) ?? layer);
 }
-
-export function nudgeIntoBoard(layer: Layer, item: WardrobeItem): Layer {
-  const h = layer.w / aspectOf(item);
-  const margin = 40;
-  return {
-    ...layer,
-    x: Math.min(Math.max(layer.x, -layer.w / 2 + margin), CANVAS_W + layer.w / 2 - margin),
-    y: Math.min(Math.max(layer.y, -h / 2 + margin), CANVAS_H + h / 2 - margin),
-  };
-}
