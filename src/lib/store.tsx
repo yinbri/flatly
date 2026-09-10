@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { toast } from "sonner";
 import { blobsStore, itemsStore, outfitsStore, referencesStore } from "./db";
 import { cacheRemote, measure } from "./image";
 import { cutOut, describeBackground } from "./cutout";
@@ -98,6 +99,12 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
         setOutfits(storedOutfits.sort((a, b) => b.updatedAt - a.updatedAt));
         setReferences(storedReferences.sort((a, b) => b.createdAt - a.createdAt));
         setSources(next);
+      } catch (error) {
+        if (!cancelled) {
+          toast.error(
+            error instanceof Error ? error.message : "Your wardrobe could not be opened.",
+          );
+        }
       } finally {
         if (!cancelled) setReady(true);
       }

@@ -1,11 +1,14 @@
-import type { Outfit, Reference, WardrobeItem } from "./types";
+import type { Drop, Outfit, Reference, Subscription, WardrobeItem } from "./types";
 
 const DB_NAME = "flatly";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const ITEMS = "items";
 const OUTFITS = "outfits";
 const BLOBS = "blobs";
 const REFERENCES = "references";
+const SUBSCRIPTIONS = "subscriptions";
+const DROPS = "drops";
+const PREFS = "prefs";
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -25,8 +28,25 @@ function openDb(): Promise<IDBDatabase> {
         if (!db.objectStoreNames.contains(REFERENCES)) {
           db.createObjectStore(REFERENCES, { keyPath: "id" });
         }
+        // Added in v3, for the watchlist.
+        if (!db.objectStoreNames.contains(SUBSCRIPTIONS)) {
+          db.createObjectStore(SUBSCRIPTIONS, { keyPath: "brandId" });
+        }
+        if (!db.objectStoreNames.contains(DROPS)) {
+          db.createObjectStore(DROPS, { keyPath: "id" });
+        }
+        if (!db.objectStoreNames.contains(PREFS)) {
+          db.createObjectStore(PREFS, { keyPath: "key" });
+        }
       };
-      request.onsuccess = () => resolve(request.result);
+      // An older tab holding the database open blocks the upgrade, so ask it to let go.
+      request.onblocked = () =>
+        reject(new Error("flatly is open in another tab. Close it and reload to upgrade."));
+      request.onsuccess = () => {
+        const db = request.result;
+        db.onversionchange = () => db.close();
+        resolve(db);
+      };
       request.onerror = () => reject(request.error);
     });
   }
@@ -66,6 +86,30 @@ export const referencesStore = {
     run<Reference[]>(REFERENCES, "readonly", (s) => s.getAll() as IDBRequest<Reference[]>),
   put: (reference: Reference) => run(REFERENCES, "readwrite", (s) => s.put(reference)),
   remove: (id: string) => run(REFERENCES, "readwrite", (s) => s.delete(id)),
+};
+
+export const subscriptionsStore = {
+  all: () =>
+    run<Subscription[]>(SUBSCRIPTIONS, "readonly", (s) => s.getAll() as IDBRequest<Subscription[]>),
+  put: (subscription: Subscription) => run(SUBSCRIPTIONS, "readwrite", (s) => s.put(subscription)),
+  remove: (brandId: string) => run(SUBSCRIPTIONS, "readwrite", (s) => s.delete(brandId)),
+};
+
+export const dropsStore = {
+  all: () => run<Drop[]>(DROPS, "readonly", (s) => s.getAll() as IDBRequest<Drop[]>),
+  put: (drop: Drop) => run(DROPS, "readwrite", (s) => s.put(drop)),
+  remove: (id: string) => run(DROPS, "readwrite", (s) => s.delete(id)),
+};
+
+/** A tiny key-value corner for settings that are not worth their own store. */
+export const prefsStore = {
+  get: <T>(key: string) =>
+    run<{ key: string; value: T } | undefined>(
+      PREFS,
+      "readonly",
+      (s) => s.get(key) as IDBRequest<{ key: string; value: T } | undefined>,
+    ).then((row) => row?.value),
+  put: <T>(key: string, value: T) => run(PREFS, "readwrite", (s) => s.put({ key, value })),
 };
 
 export const blobsStore = {

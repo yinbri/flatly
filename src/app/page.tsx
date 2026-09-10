@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { Frame, LayoutGrid, Shirt, Sparkles } from "lucide-react";
+import { Frame, LayoutGrid, LineChart, Shirt, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { InspirationPanel } from "@/components/inspiration/inspiration-panel";
 import { OutfitsPanel } from "@/components/outfits/outfits-panel";
 import { Studio } from "@/components/studio/studio";
+import { WatchlistPanel } from "@/components/watchlist/watchlist-panel";
 import { WardrobePanel } from "@/components/wardrobe/wardrobe-panel";
 import { useWardrobe } from "@/lib/store";
 import { useBoard } from "@/lib/use-board";
@@ -58,6 +59,9 @@ export default function Home() {
           <TabsTrigger value="outfits">
             <Frame /> Outfits
           </TabsTrigger>
+          <TabsTrigger value="watchlist">
+            <LineChart /> Watchlist
+          </TabsTrigger>
         </TabsList>
 
         <div className="flex items-center gap-3">
@@ -83,6 +87,10 @@ export default function Home() {
 
       <TabsContent value="outfits" className="flex min-h-0 flex-1 flex-col outline-none">
         <OutfitsPanel onOpen={open} onStartNew={() => setTab("studio")} />
+      </TabsContent>
+
+      <TabsContent value="watchlist" className="min-h-0 flex-1 outline-none">
+        <WatchlistPanel />
       </TabsContent>
     </Tabs>
   );

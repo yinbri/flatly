@@ -21,17 +21,22 @@ Stop the server first.
 
 ## The shape of it
 
-State flows one way: IndexedDB → `store.tsx` context → panels.
+State flows one way: IndexedDB → context (`store.tsx`, `watchlist.tsx`) → panels.
 
 | Path | Holds |
 | --- | --- |
-| `src/lib/db.ts` | IndexedDB wrapper. Four stores: `items`, `blobs`, `outfits`, `references` |
-| `src/lib/store.tsx` | The context. Loads everything on mount, owns object URLs, all CRUD |
+| `src/lib/db.ts` | IndexedDB wrapper. `items`, `blobs`, `outfits`, `references`, `subscriptions`, `drops`, `prefs` |
+| `src/lib/store.tsx` | The wardrobe context. Loads everything on mount, owns object URLs, all CRUD |
+| `src/lib/watchlist.tsx` | The watchlist context. Stores followed, drops, taste settings and the profile |
 | `src/lib/types.ts` | Every shared shape, plus `CANVAS_W`/`CANVAS_H` and `BACKGROUNDS` |
 | `src/lib/layout.ts` | The slot template and auto-placement |
 | `src/lib/cutout.ts` | Plain-background removal, flood fill on a canvas |
 | `src/lib/use-board.ts` | Studio board state: layers, selection, undo history |
 | `src/lib/use-viewport.ts` | Pan and zoom |
+| `src/lib/brands.ts` | The store catalogue you can follow |
+| `src/lib/palette.ts` | Colour read off an image, plus Lab distance |
+| `src/lib/taste.ts` | The taste profile and the match score, with its reasons |
+| `src/lib/feeds.ts` | RSS, Atom and Shopify `products.json` parsing |
 | `src/components/ui/` | shadcn components — add with the CLI, don't hand-roll |
 | `src/app/design/page.tsx` | Live style guide at `/design` |
 
@@ -79,6 +84,15 @@ being wiped. Test by seeding an old-version database before loading the app.
 **Ctrl/Cmd+1 is unusable** — browsers keep it for tab switching and never pass it to the page.
 Shift-based shortcuts reach the page reliably; use `event.code` (`Digit1`), not `event.key`, since
 Shift+1 is `"!"`.
+
+**The watchlist has no server, so a feed either allows cross-origin reads or it does not.**
+None of the catalogue's high-street stores publish one. Releases arrive by clipping a product
+URL, or through a feed URL attached to a store by hand; a relay is opt-in and off by default.
+`sample-drops.ts` holds ten invented releases, badged `Sample` wherever they appear — never
+present them as real, and keep the switch that turns them off.
+
+**Match scores must stay explainable.** Every signal in `scoreDrop` carries the sentence it
+would print. If a signal cannot be said out loud on a card, it does not belong in the score.
 
 **`ResizeObserver` only delivers while the page is painting.** A tab in the background never gets a
 callback, so the canvas also measures directly on mount and on window resize.
